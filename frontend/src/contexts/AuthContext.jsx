@@ -75,8 +75,14 @@ export const AuthProvider = ({ children }) => {
                 body: JSON.stringify({ username, password })
             });
 
-            // Attempt to parse the response body always
-            const data = await response.json();
+            let data;
+            try {
+            data = await response.json();
+            } catch (jsonError) {
+            // If JSON parsing fails, fall back to text
+            const text = await response.text();
+            data = { message: text };
+            }
 
             if (!response.ok) {
                 return data.message || 'Login failed';
@@ -110,7 +116,13 @@ export const AuthProvider = ({ children }) => {
                 body: JSON.stringify(userData)
             });
 
-            const data = await response.json();
+            let data;
+            try {
+            data = await response.json();
+            } catch (jsonError) {
+            const text = await response.text();
+            data = { message: text };
+            }
 
             if (!response.ok) {
                 return data.message || 'Registration failed';
