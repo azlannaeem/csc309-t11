@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
             navigate('/profile');
           } catch (error) {
             console.error(error);
-            return 'An error occurred during login';
+            return 'Invalid credentials';
           }
     };
 
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }) => {
             navigate('/');
           } catch (error) {
             console.error(error);
-            return 'An error occurred during registration';
+            return 'User Name already exists';
           }
     };
 
