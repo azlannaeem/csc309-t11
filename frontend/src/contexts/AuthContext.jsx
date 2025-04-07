@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 /*
  * This provider should export a `user` context state that is 
@@ -15,37 +17,31 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            fetchUserData(token);
-        }
-    }, []);
-
-    const fetchUserData = async (token) => {
-        try {
-            const response = await fetch(`${BACKEND_URL}/user/me`, {
+            fetch(`${BACKEND_URL}/user/me`, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                  'Authorization': `Bearer ${token}`
                 }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setUser(data.user);
-            } else {
-                localStorage.removeItem('token');
-                setUser(null);
-            }
-        } catch (error) {
-            console.error('Error fetching user data:', error);
-            localStorage.removeItem('token');
+              })
+                .then((res) => {
+                  if (!res.ok) {
+                    throw new Error('Failed to fetch user data');
+                  }
+                  return res.json();
+                })
+                .then((data) => setUser(data.user))
+                .catch((error) => {
+                  console.error(error);
+                  localStorage.removeItem('token');
+                  setUser(null);
+                });
+        } else {
             setUser(null);
         }
-    };
-
+    }, []);
     /*
      * Logout the currently authenticated user.
      *
@@ -68,35 +64,33 @@ export const AuthProvider = ({ children }) => {
     const login = async (username, password) => {
         try {
             const response = await fetch(`${BACKEND_URL}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, password })
             });
-
-            let data;
-            try {
-            data = await response.json();
-            } catch (jsonError) {
-            // If JSON parsing fails, fall back to text
-            const text = await response.text();
-            data = { message: text };
-            }
-
+            const data = await response.json();
             if (!response.ok) {
-                return data.message || 'Login failed';
+              return data.message;
             }
-
-            const { token } = data;
-            localStorage.setItem('token', token);
-            await fetchUserData(token);
-            navigate("/profile");
-            return '';
-        } catch (error) {
-            console.error('Login error:', error);
-            return 'Network error during login';
-        }
+            localStorage.setItem('token', data.token);
+      
+            const userResponse = await fetch(`${BACKEND_URL}/user/me`, {
+              headers: {
+                'Authorization': `Bearer ${data.token}`
+              }
+            });
+            if (!userResponse.ok) {
+              localStorage.removeItem('token');
+              return 'Failed to fetch user details';
+            }
+            const userData = await userResponse.json();
+            setUser(userData.user);
+      
+            navigate('/profile');
+          } catch (error) {
+            console.error(error);
+            return 'An error occurred during login';
+          }
     };
 
     /**
@@ -109,31 +103,19 @@ export const AuthProvider = ({ children }) => {
     const register = async (userData) => {
         try {
             const response = await fetch(`${BACKEND_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(userData)
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(userData)
             });
-
-            let data;
-            try {
-            data = await response.json();
-            } catch (jsonError) {
-            const text = await response.text();
-            data = { message: text };
-            }
-
+            const data = await response.json();
             if (!response.ok) {
-                return data.message || 'Registration failed';
+              return data.message;
             }
-
-            navigate("/success");
-            return '';
-        } catch (error) {
-            console.error('Registration error:', error);
-            return 'Network error during registration';
-        }
+            navigate('/');
+          } catch (error) {
+            console.error(error);
+            return 'An error occurred during registration';
+          }
     };
 
     return (
