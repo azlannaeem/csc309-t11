@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
             if (!response.ok) {
               return data.message;
             }
-            navigate('/');
+            navigate('/success');
           } catch (error) {
             console.error(error);
             return 'User Name already exists';
