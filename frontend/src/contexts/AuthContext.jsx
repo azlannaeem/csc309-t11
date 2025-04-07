@@ -75,12 +75,14 @@ export const AuthProvider = ({ children }) => {
                 body: JSON.stringify({ username, password })
             });
 
+            // Attempt to parse the response body always
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.json();
-                return errorData.message || 'Login failed';
+                return data.message || 'Login failed';
             }
 
-            const { token } = await response.json();
+            const { token } = data;
             localStorage.setItem('token', token);
             await fetchUserData(token);
             navigate("/profile");
@@ -108,9 +110,10 @@ export const AuthProvider = ({ children }) => {
                 body: JSON.stringify(userData)
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.json();
-                return errorData.message || 'Registration failed';
+                return data.message || 'Registration failed';
             }
 
             navigate("/success");
